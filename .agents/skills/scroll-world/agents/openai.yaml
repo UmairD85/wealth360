@@ -1,0 +1,11 @@
+interface:
+  display_name: "Scroll World"
+  short_description: "Build cinematic scroll-driven 3D worlds"
+  default_prompt: "Use $scroll-world to turn my brand into a seamless scroll-driven cinematic landing page."
+policy:
+  products:
+    - "chatgpt"
+    - "codex"
+    - "api"
+    - "atlas"
+  allow_implicit_invocation: true
