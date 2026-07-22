@@ -26,6 +26,11 @@ UPLOAD_BASE = os.environ.get(
     "KIE_UPLOAD_BASE", "https://kieai.redpandaai.co"
 ).rstrip("/")
 OFFICIAL_DOCS = "https://docs.kie.ai/"
+USER_AGENT = (
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 "
+    "ScrollWorldKie/1.1"
+)
 
 VIDEO_ALIASES = {
     "standard": "bytedance/seedance-2",
@@ -196,14 +201,22 @@ def build_video_payload(
 class KieClient:
     def __init__(self, *, dry_run: bool = False) -> None:
         self.dry_run = dry_run
-        self.api_key = os.environ.get("KIE_API_KEY", "")
+        # Environment editors can accidentally preserve leading/trailing whitespace.
+        # Normalize only that whitespace; never print or persist the credential.
+        self.api_key = os.environ.get("KIE_API_KEY", "").strip()
         if not self.api_key and not dry_run:
             raise KieError(
                 "KIE_API_KEY is not set. Configure it in your environment; do not pass it in chat or on the command line."
             )
 
     def _headers(self, *, json_body: bool = False) -> dict[str, str]:
-        headers = {"Authorization": f"Bearer {self.api_key}"}
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Accept": "application/json",
+            # Kie.ai's upload host sits behind Cloudflare Browser Integrity Check.
+            # Python urllib's default signature can be rejected with error 1010.
+            "User-Agent": USER_AGENT,
+        }
         if json_body:
             headers["Content-Type"] = "application/json"
         return headers
@@ -455,6 +468,7 @@ def finish_generation(
 
 def run_self_test() -> None:
     assert OFFICIAL_DOCS == "https://docs.kie.ai/"
+    assert USER_AGENT.startswith("Mozilla/5.0")
     assert resolve_model("standard", "video") == "bytedance/seedance-2"
     assert resolve_model("preview", "video") == "bytedance/seedance-2-mini"
     assert resolve_model("character", "image") == "nano-banana-2"
